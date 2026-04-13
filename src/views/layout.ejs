@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title><%= title %> - Mossbox</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <header>
+    <h1>Mossbox</h1>
+    <% if (authed) { %>
+      <nav>
+        <a href="/drop">Drop</a>
+        <a href="/notes">Notes</a>
+        <a href="/bookmarks">Bookmarks</a>
+        <a href="/tools">Tools</a>
+        <a href="/logout">Logout</a>
+      </nav>
+    <% } %>
+  </header>
+  <main>
+    <%- body %>
+  </main>
+</body>
+</html>

@@ -1,0 +1,87 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f5f7f4;
+  color: #1f2a1f;
+}
+header {
+  background: #294b2f;
+  color: white;
+  padding: 14px 20px;
+}
+header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+nav {
+  margin-top: 8px;
+}
+nav a {
+  color: #d7f2dc;
+  margin-right: 14px;
+  text-decoration: none;
+}
+main {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+form {
+  margin: 0;
+}
+input, textarea, select, button {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin: 8px 0 12px;
+}
+button {
+  width: auto;
+  background: #355f3d;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.inline-form {
+  display: inline;
+}
+.list {
+  display: grid;
+  gap: 12px;
+}
+.item {
+  border: 1px solid #dde7dc;
+  border-radius: 10px;
+  padding: 12px;
+}
+.muted {
+  color: #637063;
+  font-size: 14px;
+}
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.row > * {
+  flex: 1;
+}
+code, pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+pre {
+  background: #111;
+  color: #eee;
+  padding: 12px;
+  border-radius: 8px;
+  overflow: auto;
+}

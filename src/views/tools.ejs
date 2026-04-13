@@ -1,0 +1,29 @@
+<div class="card">
+  <h2>Tools</h2>
+  <p class="muted">Small HTTP and ping helpers.</p>
+</div>
+<div class="card">
+  <h3>HTTP fetch</h3>
+  <form method="post" action="/tools/fetch">
+    <input type="url" name="url" placeholder="https://example.com" required />
+    <select name="method">
+      <option>GET</option>
+      <option>POST</option>
+    </select>
+    <textarea name="body" rows="4" placeholder="Optional request body"></textarea>
+    <button type="submit">Send request</button>
+  </form>
+  <% if (fetchResult) { %>
+    <pre><%= fetchResult %></pre>
+  <% } %>
+</div>
+<div class="card">
+  <h3>Ping</h3>
+  <form method="post" action="/tools/ping">
+    <input type="text" name="host" placeholder="example.com" required />
+    <button type="submit">Ping</button>
+  </form>
+  <% if (pingResult) { %>
+    <pre><%= pingResult %></pre>
+  <% } %>
+</div>

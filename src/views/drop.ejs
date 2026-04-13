@@ -1,0 +1,19 @@
+<div class="card">
+  <h2>Drop</h2>
+  <form method="post" action="/api/files/upload" enctype="multipart/form-data">
+    <input type="file" name="file" required />
+    <button type="submit">Upload</button>
+  </form>
+</div>
+<div class="card">
+  <h3>Recent files</h3>
+  <div class="list">
+    <% files.forEach(file => { %>
+      <div class="item">
+        <div><strong><%= file.original_name %></strong></div>
+        <div class="muted"><%= file.mime_type || 'unknown' %> · <%= file.size_bytes %> bytes · <%= file.created_at %></div>
+        <div><a href="/files/<%= file.id %>">Open</a></div>
+      </div>
+    <% }) %>
+  </div>
+</div>
