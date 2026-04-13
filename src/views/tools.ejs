@@ -1,6 +1,6 @@
 <div class="card">
   <h2>Tools</h2>
-  <p class="muted">Small HTTP and ping helpers.</p>
+  <p class="muted">Small HTTP, ping, and DNS helpers with basic safety limits.</p>
 </div>
 <div class="card">
   <h3>HTTP fetch</h3>
@@ -10,9 +10,10 @@
       <option>GET</option>
       <option>POST</option>
     </select>
-    <textarea name="body" rows="4" placeholder="Optional request body"></textarea>
+    <textarea name="body" rows="4" placeholder="Optional request body (POST only)"></textarea>
     <button type="submit">Send request</button>
   </form>
+  <p class="muted">Fetches are limited to http/https, short timeout, and truncated response preview.</p>
   <% if (fetchResult) { %>
     <pre><%= fetchResult %></pre>
   <% } %>
@@ -25,5 +26,15 @@
   </form>
   <% if (pingResult) { %>
     <pre><%= pingResult %></pre>
+  <% } %>
+</div>
+<div class="card">
+  <h3>DNS lookup</h3>
+  <form method="post" action="/tools/dns">
+    <input type="text" name="host" placeholder="example.com" required />
+    <button type="submit">Lookup</button>
+  </form>
+  <% if (dnsResult) { %>
+    <pre><%= dnsResult %></pre>
   <% } %>
 </div>

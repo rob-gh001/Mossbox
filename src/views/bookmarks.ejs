@@ -1,11 +1,19 @@
 <div class="card">
   <h2>Bookmarks</h2>
-  <form method="post" action="/api/bookmarks">
+  <form method="post" action="/bookmarks/create">
     <input type="url" name="url" placeholder="https://example.com" required />
     <input type="text" name="title" placeholder="Optional title" />
     <textarea name="note" rows="3" placeholder="Optional note"></textarea>
     <button type="submit">Save bookmark</button>
   </form>
+</div>
+<div class="card">
+  <h3>Search</h3>
+  <form method="get" action="/bookmarks">
+    <input type="text" name="q" value="<%= query %>" placeholder="Search title, URL, or note" />
+    <button type="submit">Search</button>
+  </form>
+  <p class="muted">Current query: <strong><%= query || 'none' %></strong></p>
 </div>
 <div class="card">
   <h3>Saved bookmarks</h3>
@@ -15,8 +23,15 @@
         <div><strong><%= item.title || item.fetched_title || item.url %></strong></div>
         <div><a href="<%= item.url %>" target="_blank" rel="noreferrer"><%= item.url %></a></div>
         <% if (item.note) { %><div><%= item.note %></div><% } %>
+        <% if (item.fetched_title && !item.title) { %><div class="muted">Fetched title: <%= item.fetched_title %></div><% } %>
         <div class="muted"><%= item.created_at %></div>
+        <form class="inline-form" method="post" action="/bookmarks/<%= item.id %>/delete" onsubmit="return confirm('Delete this bookmark?');">
+          <button type="submit">Delete</button>
+        </form>
       </div>
     <% }) %>
+    <% if (bookmarks.length === 0) { %>
+      <div class="item muted">No bookmarks found.</div>
+    <% } %>
   </div>
 </div>

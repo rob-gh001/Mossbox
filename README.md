@@ -5,7 +5,7 @@ Mossbox is a lightweight personal capture app with four modules:
 - Drop — file/image upload and retrieval
 - Notes — notes + todos in one place
 - Bookmarks — saved links
-- Tools — small HTTP/ping utilities
+- Tools — small HTTP/ping/DNS utilities
 
 ## Stack
 
@@ -15,22 +15,24 @@ Mossbox is a lightweight personal capture app with four modules:
 - EJS templates
 - Local file storage
 
-## Run locally
+## Local setup
 
 ```bash
 npm install
-APP_PASSWORD=changeme SESSION_SECRET=dev-secret node src/server.js
+cp .env.example .env
+# edit .env with your values
+npm start
 ```
 
 Then open:
 
 - `http://127.0.0.1:3000`
 
-## Env
+## Environment variables
 
 - `PORT` — listen port (default `3000`)
-- `APP_PASSWORD` — login password (required in practice)
-- `SESSION_SECRET` — session secret
+- `APP_PASSWORD` — login password for the web UI
+- `SESSION_SECRET` — session secret for login/session cookies
 - `API_KEY` — API auth key for `/api/*`
 
 ## API auth
@@ -49,8 +51,63 @@ Web UI requests still use normal login/session auth.
 - `GET /api/files/:id/content` — stream raw file content
 - `POST /api/files/upload` — upload a file with multipart form data; returns `contentUrl` and `webDownloadUrl`
 
-## Deploy notes
+## Notes API
 
-- Bind to `0.0.0.0`
-- Listen on `process.env.PORT || 3000`
-- Persist the `storage/` directory if possible
+- `POST /api/notes`
+- `GET /api/notes`
+
+## Bookmarks API
+
+- `POST /api/bookmarks`
+- `GET /api/bookmarks`
+
+## Run on Rustix
+
+1. Pull the repo into the Rustix container/server.
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Create `.env`:
+
+```bash
+cp .env.example .env
+```
+
+4. Edit `.env` and set real values for:
+
+- `APP_PASSWORD`
+- `SESSION_SECRET`
+- `API_KEY`
+
+5. Start Mossbox:
+
+```bash
+npm start
+```
+
+## Important runtime notes
+
+- Mossbox listens on `0.0.0.0`
+- Port comes from `process.env.PORT || 3000`
+- Uploaded files and SQLite DB live under `storage/`
+- If possible, keep `storage/` persistent across restarts/redeploys
+
+## Current scope
+
+### Done
+- file upload/download via web UI
+- file upload/list/metadata/content via API
+- notes + todos with filters and delete
+- bookmarks with search and delete
+- tools: HTTP fetch, ping validation, DNS lookup
+
+### Still good future additions
+- edit note/bookmark
+- delete via API for files/notes/bookmarks
+- better flash messages
+- health endpoint
+- nicer dashboard/home
+- improved tools error reporting

@@ -1,6 +1,6 @@
 <div class="card">
   <h2>Notes</h2>
-  <form method="post" action="/api/notes">
+  <form method="post" action="/notes/create">
     <div class="row">
       <div>
         <label>Type</label>
@@ -15,19 +15,38 @@
   </form>
 </div>
 <div class="card">
-  <h3>Recent entries</h3>
+  <h3>Filters</h3>
+  <div class="row">
+    <div><a href="/notes?filter=all">All</a></div>
+    <div><a href="/notes?filter=notes">Notes</a></div>
+    <div><a href="/notes?filter=todos">Todos</a></div>
+    <div><a href="/notes?filter=open">Open todos</a></div>
+    <div><a href="/notes?filter=done">Done todos</a></div>
+  </div>
+  <p class="muted">Current filter: <strong><%= currentFilter %></strong></p>
+</div>
+<div class="card">
+  <h3>Entries</h3>
   <div class="list">
     <% notes.forEach(note => { %>
       <div class="item">
         <div><strong><%= note.type.toUpperCase() %></strong> <% if (note.type === 'todo') { %>· <%= note.is_done ? 'DONE' : 'OPEN' %><% } %></div>
         <div><%= note.content %></div>
-        <div class="muted"><%= note.created_at %></div>
-        <% if (note.type === 'todo') { %>
-          <form class="inline-form" method="post" action="/api/notes/<%= note.id %>/toggle">
-            <button type="submit"><%= note.is_done ? 'Mark open' : 'Mark done' %></button>
+        <div class="muted">Created: <%= note.created_at %> · Updated: <%= note.updated_at %></div>
+        <div class="row">
+          <% if (note.type === 'todo') { %>
+            <form class="inline-form" method="post" action="/notes/<%= note.id %>/toggle">
+              <button type="submit"><%= note.is_done ? 'Mark open' : 'Mark done' %></button>
+            </form>
+          <% } %>
+          <form class="inline-form" method="post" action="/notes/<%= note.id %>/delete" onsubmit="return confirm('Delete this entry?');">
+            <button type="submit">Delete</button>
           </form>
-        <% } %>
+        </div>
       </div>
     <% }) %>
+    <% if (notes.length === 0) { %>
+      <div class="item muted">No entries for this filter yet.</div>
+    <% } %>
   </div>
 </div>
