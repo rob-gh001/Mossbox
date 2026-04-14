@@ -4,11 +4,12 @@ const express = require('express');
 const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
-const { db, uploadsDir } = require('./db');
+const { db } = require('./db');
 const { requireAuth, requireApiKey } = require('./lib/auth');
 const { upload } = require('./lib/upload');
 const { pingHost, lookupHost, isSafeHost } = require('./lib/ping');
 const { getFileRecord, sendStoredFileStream } = require('./lib/files');
+const { KomariMonitorClient, VERSION: komariVersion } = require('./lib/komari');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -22,6 +23,103 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(session({ secret: sessionSecret, resave: false, saveUninitialized: false }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+const monitorRuntime = {
+  client: null,
+  logs: [],
+  maxLogs: 200,
+};
+
+function addMonitorLog(line) {
+  const text = String(line || '').trim();
+  if (!text) return;
+  monitorRuntime.logs.push(text);
+  if (monitorRuntime.logs.length > monitorRuntime.maxLogs) {
+    monitorRuntime.logs = monitorRuntime.logs.slice(-monitorRuntime.maxLogs);
+  }
+}
+
+function getMonitorSettings() {
+  return db.prepare('SELECT * FROM monitor_settings WHERE id = 1').get();
+}
+
+function updateMonitorSettings(fields) {
+  const allowed = {
+    http_server: 'http_server',
+    token: 'token',
+    interval_seconds: 'interval_seconds',
+    reconnect_interval_seconds: 'reconnect_interval_seconds',
+    log_level: 'log_level',
+    disable_remote_control: 'disable_remote_control',
+    ignore_unsafe_cert: 'ignore_unsafe_cert',
+    enabled: 'enabled',
+    status: 'status',
+    last_error: 'last_error',
+    last_started_at: 'last_started_at',
+    last_stopped_at: 'last_stopped_at',
+  };
+
+  const keys = Object.keys(fields).filter((key) => key in allowed);
+  if (!keys.length) return;
+
+  const setClause = keys.map((key) => `${allowed[key]} = ?`).join(', ');
+  const values = keys.map((key) => fields[key]);
+  values.push(1);
+  db.prepare(`UPDATE monitor_settings SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(...values);
+}
+
+function monitorConfigFromSettings(settings) {
+  return {
+    httpServer: String(settings.http_server || '').trim(),
+    token: String(settings.token || '').trim(),
+    interval: Number(settings.interval_seconds || 5),
+    reconnectInterval: Number(settings.reconnect_interval_seconds || 10),
+    logLevel: Number(settings.log_level || 0),
+    disableRemoteControl: !!settings.disable_remote_control,
+    ignoreUnsafeCert: !!settings.ignore_unsafe_cert,
+  };
+}
+
+async function stopMonitorRuntime() {
+  if (monitorRuntime.client) {
+    const client = monitorRuntime.client;
+    monitorRuntime.client = null;
+    await client.stop();
+  }
+  updateMonitorSettings({ status: 'stopped', last_stopped_at: new Date().toISOString() });
+}
+
+async function startMonitorRuntime() {
+  const settings = getMonitorSettings();
+  const config = monitorConfigFromSettings(settings);
+
+  if (!config.httpServer) throw new Error('HTTP server is required');
+  if (!config.token) throw new Error('Token is required');
+
+  await stopMonitorRuntime();
+  updateMonitorSettings({ status: 'starting', last_error: '', last_started_at: new Date().toISOString() });
+  addMonitorLog(`[${new Date().toISOString()}] Starting Komari monitor ${komariVersion}`);
+
+  const client = new KomariMonitorClient(config, {
+    onLog: (line) => addMonitorLog(line),
+    onStatus: ({ state, error }) => {
+      updateMonitorSettings({
+        status: state || 'stopped',
+        last_error: error || '',
+        ...(state === 'stopped' ? { last_stopped_at: new Date().toISOString() } : {}),
+      });
+    },
+  });
+
+  monitorRuntime.client = client;
+  client.start().catch((error) => {
+    addMonitorLog(`[${new Date().toISOString()}] ERROR ${error.message}`);
+    updateMonitorSettings({ status: 'error', last_error: error.message || String(error), enabled: 0, last_stopped_at: new Date().toISOString() });
+    if (monitorRuntime.client === client) {
+      monitorRuntime.client = null;
+    }
+  });
+}
 
 function renderPage(res, view, params = {}) {
   const viewPath = path.join(__dirname, 'views', `${view}.ejs`);
@@ -249,9 +347,72 @@ app.post('/tools/dns', requireAuth, async (req, res) => {
       ? `ERROR: ${result.error}`
       : `HOST: ${result.host}\n\n${result.addresses.map(a => `${a.address} (IPv${a.family})`).join('\n') || 'No addresses'}`;
   }
-  renderPage(res, 'tools', { title: 'Tools', fetchResult: '', pingResult: '', dnsResult: output, authed: true });
+  renderPage(res, 'tools', { title: 'Tools', fetchResult: '', pingResult: output, dnsResult: '', authed: true });
 });
 
-app.listen(port, host, () => {
+app.get('/monitor', requireAuth, (req, res) => {
+  const settings = getMonitorSettings();
+  renderPage(res, 'monitor', {
+    title: 'Monitor',
+    authed: true,
+    settings,
+    logs: monitorRuntime.logs.slice(-100).reverse(),
+    message: req.query.message || '',
+    error: req.query.error || '',
+    version: komariVersion,
+  });
+});
+
+app.post('/monitor/save', requireAuth, (req, res) => {
+  const httpServer = String(req.body.http_server || '').trim();
+  const token = String(req.body.token || '').trim();
+  const intervalSeconds = Math.max(0.5, Number(req.body.interval_seconds || 5));
+  const reconnectIntervalSeconds = Math.max(1, Number(req.body.reconnect_interval_seconds || 10));
+  const logLevel = Math.max(0, Math.min(5, Number(req.body.log_level || 0)));
+  const disableRemoteControl = req.body.disable_remote_control ? 1 : 0;
+  const ignoreUnsafeCert = req.body.ignore_unsafe_cert ? 1 : 0;
+
+  updateMonitorSettings({
+    http_server: httpServer,
+    token,
+    interval_seconds: intervalSeconds,
+    reconnect_interval_seconds: reconnectIntervalSeconds,
+    log_level: logLevel,
+    disable_remote_control: disableRemoteControl,
+    ignore_unsafe_cert: ignoreUnsafeCert,
+    last_error: '',
+  });
+
+  res.redirect('/monitor?message=Settings+saved');
+});
+
+app.post('/monitor/enable', requireAuth, async (_req, res) => {
+  try {
+    updateMonitorSettings({ enabled: 1, last_error: '' });
+    await startMonitorRuntime();
+    res.redirect('/monitor?message=Monitor+enabled');
+  } catch (error) {
+    updateMonitorSettings({ enabled: 0, status: 'error', last_error: error.message || String(error) });
+    res.redirect(`/monitor?error=${encodeURIComponent(error.message || String(error))}`);
+  }
+});
+
+app.post('/monitor/disable', requireAuth, async (_req, res) => {
+  updateMonitorSettings({ enabled: 0 });
+  await stopMonitorRuntime();
+  res.redirect('/monitor?message=Monitor+disabled');
+});
+
+app.listen(port, host, async () => {
   console.log(`Mossbox listening on http://${host}:${port}`);
+  const settings = getMonitorSettings();
+  if (settings && settings.enabled) {
+    try {
+      await startMonitorRuntime();
+      console.log('Monitor auto-started');
+    } catch (error) {
+      console.error(`Monitor auto-start failed: ${error.message}`);
+      updateMonitorSettings({ enabled: 0, status: 'error', last_error: error.message || String(error) });
+    }
+  }
 });

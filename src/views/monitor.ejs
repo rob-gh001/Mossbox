@@ -1,0 +1,82 @@
+<div class="card">
+  <h2>Monitor</h2>
+  <p class="muted">Integrated Komari monitor client. Save your server/token settings, then enable or disable it from here.</p>
+  <% if (message) { %>
+    <div class="notice success"><%= message %></div>
+  <% } %>
+  <% if (error) { %>
+    <div class="notice error"><%= error %></div>
+  <% } %>
+</div>
+
+<div class="card">
+  <h3>Status</h3>
+  <div class="kv-list">
+    <div><strong>State:</strong> <span class="status-pill status-<%= (settings.status || 'stopped').toLowerCase() %>"><%= settings.status || 'stopped' %></span></div>
+    <div><strong>Enabled:</strong> <%= settings.enabled ? 'Yes' : 'No' %></div>
+    <div><strong>Version:</strong> <code><%= version %></code></div>
+    <div><strong>Last started:</strong> <%= settings.last_started_at || '-' %></div>
+    <div><strong>Last stopped:</strong> <%= settings.last_stopped_at || '-' %></div>
+    <div><strong>Last error:</strong> <%= settings.last_error || '-' %></div>
+  </div>
+  <div class="button-row">
+    <form method="post" action="/monitor/enable" class="inline-form">
+      <button type="submit">Enable monitor</button>
+    </form>
+    <form method="post" action="/monitor/disable" class="inline-form">
+      <button type="submit" class="secondary">Disable monitor</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Settings</h3>
+  <form method="post" action="/monitor/save">
+    <label>Komari server</label>
+    <input type="url" name="http_server" placeholder="https://komari.example.com" value="<%= settings.http_server || '' %>" required />
+
+    <label>Token</label>
+    <input type="text" name="token" placeholder="Your Komari token" value="<%= settings.token || '' %>" required />
+
+    <div class="row">
+      <div>
+        <label>Report interval (seconds)</label>
+        <input type="number" name="interval_seconds" min="0.5" step="0.5" value="<%= settings.interval_seconds || 5 %>" />
+      </div>
+      <div>
+        <label>Reconnect interval (seconds)</label>
+        <input type="number" name="reconnect_interval_seconds" min="1" step="1" value="<%= settings.reconnect_interval_seconds || 10 %>" />
+      </div>
+      <div>
+        <label>Log level</label>
+        <select name="log_level">
+          <% for (let i = 0; i <= 5; i++) { %>
+            <option value="<%= i %>" <%= Number(settings.log_level || 0) === i ? 'selected' : '' %>><%= i %></option>
+          <% } %>
+        </select>
+      </div>
+    </div>
+
+    <label class="checkbox-row">
+      <input type="checkbox" name="disable_remote_control" value="1" <%= settings.disable_remote_control ? 'checked' : '' %> />
+      <span>Disable remote control / web SSH / remote exec</span>
+    </label>
+
+    <label class="checkbox-row">
+      <input type="checkbox" name="ignore_unsafe_cert" value="1" <%= settings.ignore_unsafe_cert ? 'checked' : '' %> />
+      <span>Ignore unsafe TLS certificates</span>
+    </label>
+
+    <button type="submit">Save settings</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Recent logs</h3>
+  <p class="muted">Newest first, in-memory only for the current Mossbox process.</p>
+  <% if (logs && logs.length) { %>
+    <pre><%= logs.join('\n') %></pre>
+  <% } else { %>
+    <p class="muted">No logs yet.</p>
+  <% } %>
+</div>

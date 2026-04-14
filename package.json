@@ -17,6 +17,10 @@
     "ejs": "^5.0.2",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "multer": "^2.1.1"
+    "multer": "^2.1.1",
+    "node-fetch": "^3.3.2",
+    "node-pty": "^1.0.0",
+    "systeminformation": "^5.23.0",
+    "ws": "^8.14.0"
   }
 }

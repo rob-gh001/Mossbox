@@ -50,6 +50,9 @@ button {
   border-radius: 8px;
   cursor: pointer;
 }
+button.secondary {
+  background: #6a756b;
+}
 .inline-form {
   display: inline;
 }
@@ -84,4 +87,60 @@ pre {
   padding: 12px;
   border-radius: 8px;
   overflow: auto;
+}
+.notice {
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+.notice.success {
+  background: #e8f6ea;
+  color: #214b28;
+}
+.notice.error {
+  background: #fdeaea;
+  color: #7a2222;
+}
+.kv-list {
+  display: grid;
+  gap: 10px;
+}
+.button-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.checkbox-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.checkbox-row input {
+  width: auto;
+  margin: 0;
+}
+.status-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.status-running {
+  background: #dff4e3;
+  color: #175c27;
+}
+.status-starting {
+  background: #fff4d9;
+  color: #6f5600;
+}
+.status-stopped {
+  background: #ecefed;
+  color: #445046;
+}
+.status-error {
+  background: #fde3e3;
+  color: #8c1f1f;
 }

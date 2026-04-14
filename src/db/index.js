@@ -38,6 +38,25 @@ CREATE TABLE IF NOT EXISTS bookmarks (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS monitor_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  http_server TEXT NOT NULL DEFAULT '',
+  token TEXT NOT NULL DEFAULT '',
+  interval_seconds REAL NOT NULL DEFAULT 5,
+  reconnect_interval_seconds INTEGER NOT NULL DEFAULT 10,
+  log_level INTEGER NOT NULL DEFAULT 0,
+  disable_remote_control INTEGER NOT NULL DEFAULT 0,
+  ignore_unsafe_cert INTEGER NOT NULL DEFAULT 1,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'stopped',
+  last_error TEXT NOT NULL DEFAULT '',
+  last_started_at TEXT,
+  last_stopped_at TEXT,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO monitor_settings (id) VALUES (1);
 `);
 
 module.exports = { db, storageDir, uploadsDir };
