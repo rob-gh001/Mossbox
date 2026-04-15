@@ -1,34 +1,147 @@
 <div class="card">
-  <h2>Drop</h2>
+  <div class="section-header">
+    <div>
+      <h2>Drop</h2>
+      <p class="muted">Upload files, browse image thumbnails, and grab direct download links.</p>
+    </div>
+  </div>
   <form method="post" action="/drop/upload" enctype="multipart/form-data">
     <input type="file" name="file" required />
     <button type="submit">Upload</button>
   </form>
-  <p class="muted">Web download uses session auth. API access uses `Authorization: Bearer &lt;API_KEY&gt;`.</p>
+  <p class="muted">Web download uses session auth. API access uses <code>Authorization: Bearer &lt;API_KEY&gt;</code>.</p>
 </div>
+
+<%
+  const imageFiles = files.filter(file => (file.mime_type || '').startsWith('image/'));
+  const otherFiles = files.filter(file => !(file.mime_type || '').startsWith('image/'));
+  const formatBytes = (bytes) => {
+    const value = Number(bytes || 0);
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  };
+%>
+
 <div class="card">
-  <h3>Recent files</h3>
-  <div class="list">
-    <% files.forEach(file => { %>
-      <div class="item">
-        <div><strong><%= file.original_name %></strong></div>
-        <div class="muted"><%= file.mime_type || 'unknown' %> · <%= file.size_bytes %> bytes · <%= file.created_at %></div>
-        <div class="muted">Web URL:</div>
-        <pre>/files/<%= file.id %></pre>
-        <div class="muted">API metadata:</div>
-        <pre>/api/files/<%= file.id %></pre>
-        <div class="muted">API content:</div>
-        <pre>/api/files/<%= file.id %>/content</pre>
-        <div class="row">
-          <div><a href="/files/<%= file.id %>">Download</a></div>
+  <div class="section-header">
+    <div>
+      <h3>Image gallery</h3>
+      <p class="muted">Recent image uploads shown as cards. Click a thumbnail to open it full size.</p>
+    </div>
+    <div class="muted"><%= imageFiles.length %> image<%= imageFiles.length === 1 ? '' : 's' %></div>
+  </div>
+
+  <% if (imageFiles.length > 0) { %>
+    <div class="gallery-grid">
+      <% imageFiles.forEach(file => { %>
+        <article class="gallery-card">
+          <button type="button" class="gallery-thumb" data-full-src="/files/<%= file.id %>" data-full-name="<%= file.original_name %>">
+            <img src="/files/<%= file.id %>" alt="<%= file.original_name %>" loading="lazy" />
+          </button>
+          <div class="gallery-meta">
+            <div class="gallery-title" title="<%= file.original_name %>"><%= file.original_name %></div>
+            <div class="muted"><%= formatBytes(file.size_bytes) %> · <%= file.created_at %></div>
+            <div class="muted">Web: <code>/files/<%= file.id %></code></div>
+            <div class="gallery-actions">
+              <a href="/files/<%= file.id %>" download>Download</a>
+              <a href="/files/<%= file.id %>" target="_blank" rel="noopener">Open</a>
+              <form class="inline-form" method="post" action="/drop/<%= file.id %>/delete" onsubmit="return confirm('Delete this file?');">
+                <button type="submit" class="danger-button">Delete</button>
+              </form>
+            </div>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <div class="empty-state muted">No image uploads yet.</div>
+  <% } %>
+</div>
+
+<div class="card">
+  <div class="section-header">
+    <div>
+      <h3>Other files</h3>
+      <p class="muted">Non-image uploads stay in a simple file list.</p>
+    </div>
+    <div class="muted"><%= otherFiles.length %> file<%= otherFiles.length === 1 ? '' : 's' %></div>
+  </div>
+
+  <div class="file-list">
+    <% otherFiles.forEach(file => { %>
+      <div class="file-row">
+        <div class="file-row-main">
+          <strong><%= file.original_name %></strong>
+          <div class="muted"><%= file.mime_type || 'unknown' %> · <%= formatBytes(file.size_bytes) %> · <%= file.created_at %></div>
+          <div class="muted">Web URL: <code>/files/<%= file.id %></code></div>
+          <div class="muted">API metadata: <code>/api/files/<%= file.id %></code></div>
+          <div class="muted">API content: <code>/api/files/<%= file.id %>/content</code></div>
+        </div>
+        <div class="gallery-actions file-actions">
+          <a href="/files/<%= file.id %>" download>Download</a>
+          <a href="/files/<%= file.id %>" target="_blank" rel="noopener">Open</a>
           <form class="inline-form" method="post" action="/drop/<%= file.id %>/delete" onsubmit="return confirm('Delete this file?');">
-            <button type="submit">Delete</button>
+            <button type="submit" class="danger-button">Delete</button>
           </form>
         </div>
       </div>
     <% }) %>
-    <% if (files.length === 0) { %>
-      <div class="item muted">No uploaded files yet.</div>
+
+    <% if (otherFiles.length === 0) { %>
+      <div class="empty-state muted">Only image files so far — no extra file rows to show.</div>
     <% } %>
   </div>
 </div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <button type="button" class="lightbox-backdrop" data-close-lightbox aria-label="Close preview"></button>
+  <div class="lightbox-panel" role="dialog" aria-modal="true" aria-labelledby="lightbox-title">
+    <button type="button" class="lightbox-close" data-close-lightbox aria-label="Close preview">×</button>
+    <div class="lightbox-content">
+      <img id="lightbox-image" src="" alt="" />
+    </div>
+    <div class="lightbox-footer">
+      <div id="lightbox-title" class="gallery-title"></div>
+      <a id="lightbox-download" href="#" download>Download</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const lightbox = document.getElementById('lightbox');
+    const image = document.getElementById('lightbox-image');
+    const title = document.getElementById('lightbox-title');
+    const download = document.getElementById('lightbox-download');
+    const openButtons = document.querySelectorAll('.gallery-thumb');
+    const closeButtons = document.querySelectorAll('[data-close-lightbox]');
+
+    function closeLightbox() {
+      lightbox.hidden = true;
+      image.src = '';
+      image.alt = '';
+      title.textContent = '';
+      download.href = '#';
+    }
+
+    openButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const src = button.dataset.fullSrc;
+        const name = button.dataset.fullName || 'Image preview';
+        image.src = src;
+        image.alt = name;
+        title.textContent = name;
+        download.href = src;
+        download.setAttribute('download', name);
+        lightbox.hidden = false;
+      });
+    });
+
+    closeButtons.forEach((button) => button.addEventListener('click', closeLightbox));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !lightbox.hidden) closeLightbox();
+    });
+  })();
+</script>
